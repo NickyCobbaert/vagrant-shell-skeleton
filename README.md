@@ -56,30 +56,35 @@ You should at least give each VM a `name:`, other settings (see below) are optio
 
 The table below summarizes all supported settings for specifying VM properties. Apart from the VM `name`, all settings are optional.
 
-| Name              | Type         | Default             | Description                                |
-| ----------------- | ------------ | ------------------- | ------------------------------------------ |
-| `auto_config`     | bool         | `true`              | Disable auto configuration of network      |
-| `box_url`         | string       | -                   | URL to the Vagrant box                     |
-| `box`             | string       | `bento/almalinux-9` | Vagrant base box                           |
-| `cpus`            | int          | -                   | Number of CPUs for the VM                  |
-| `disks`           | list of dict | []                  | List of disks to be added to the VM        |
-| ↳ `name`          | string       | -                   | Name of the disk                           |
-| ↳ `size`          | int/string   | -                   | Size of the disk in MB (or specified unit) |
-| `forwarded_ports` | list of dict | []                  | NAT adapter port forwarding rules          |
-| ↳ `guest`         | int          | -                   | Port on the VM                             |
-| ↳ `host`          | int          | -                   | Port on the physical system                |
-| `intnet`          | bool         | `false`             | Use internal network instead of host-only  |
-| `ip`              | string       | DHCP                | IP address for the VM                      |
-| `mac`             | string       | -                   | MAC address for the NIC                    |
-| `memory`          | int          | -                   | Memory size in MB                          |
-| `name`            | string       | -                   | Hostname for the VM (**mandatory**)        |
-| `netmask`         | string       | `255.255.255.0`     | Network mask                               |
-| `ssh_username`    | string       | -                   | username for the admin user                |
-| `ssh_password`    | string       | -                   | password for the admin user                |
-| `synced_folders`  | list of dict | []                  | Synced folders (see examples below)        |
-| ↳ `src`           | string       | -                   | Source directory on the host system        |
-| ↳ `dest`          | string       | -                   | Mount point in the guest                   |
-| ↳ `options`       | dict         | -                   | Options for the synced folder              |
+| Name              | Type         | Default               | Description                                |
+| ----------------- | ------------ | --------------------- | ------------------------------------------ |
+| `auto_config`     | bool         | `true`                | Disable auto configuration of network      |
+| `box_url`         | string       | -                     | URL to the Vagrant box                     |
+| `box`             | string       | `bento/almalinux-9`   | Vagrant base box                           |
+| `cpus`            | int          | -                     | Number of CPUs for the VM                  |
+| `disks`           | list of dict | []                    | List of disks to be added to the VM        |
+| ↳ `name`          | string       | -                     | Name of the disk                           |
+| ↳ `size`          | int/string   | -                     | Size of the disk in MB (or specified unit) |
+| `forwarded_ports` | list of dict | []                    | NAT adapter port forwarding rules          |
+| ↳ `guest`         | int          | -                     | Port on the VM                             |
+| ↳ `host`          | int          | -                     | Port on the physical system                |
+| `intnet`          | bool         | `false`               | Use internal network instead of host-only  |
+| `bridged`         | bool         | `false`               | Use Bridged Adapter instead of host-only   |
+| ↳ `bridge`        | string       | *vagrant will ask*    | Chosen adapter for the Bridged Adapter     |
+| `ip`              | string       | DHCP                  | IP address for the VM                      |
+| `mac`             | string       | -                     | MAC address for the NIC                    |
+| `memory`          | int          | -                     | Memory size in MB                          |
+| `name`            | string       | -                     | Hostname for the VM (**mandatory**)        |
+| `vm_name`         | string       | *folder-name-randomNr*| Showed name in VBox                        |
+| `group`           | string       | -                     | group where the VM is part of in VBox      |
+| `netmask`         | string       | `255.255.255.0`       | Network mask                               |
+| `show_gui`        | bool         | `false`               | VM will show it's GUI by default           |
+| `ssh_username`    | string       | -                     | username for the admin user                |
+| `ssh_password`    | string       | -                     | password for the admin user                |
+| `synced_folders`  | list of dict | []                    | Synced folders (see examples below)        |
+| ↳ `src`           | string       | -                     | Source directory on the host system        |
+| ↳ `dest`          | string       | -                     | Mount point in the guest                   |
+| ↳ `options`       | dict         | -                     | Options for the synced folder              |
 
 ### Remarks
 
@@ -171,6 +176,25 @@ The table below summarizes all supported settings for specifying VM properties. 
     ```
 
     Example with two port forwarding rules. A web server on the VM will be accessible from the physical system via *http://localhost:8080/* (for HTTP) and *https://localhost:8443/* (for HTTPS).
+
+- **Windows Example + Bridged Adaptor Example**
+
+  ```yaml
+  - name: CLIENT-01
+    vm_name: windows-client
+    box: gusztavvargadr/windows-11
+    group: SEP_Project_AO2
+    memory: 8192
+    cpus: 4
+    bridged: true
+    bridge: "enp0s8"
+    show_gui: true
+  ```
+
+    Example creates a Windows 11 client VM with the graphical interface shown at startup. The VM uses a bridged adapter *bound* to the physical `"enp0s8"` RJ45 interface.
+    The provision file of a Windows VM will provision using a PowerShell *.PS1* script. This script can even execute another script, a common provisioning script or even a *.sh* script!
+
+    This last step can also be used to create a script that works on **both Windows and Linux**: PowerShell can be installed on Linux, Windows and MacOS. (use `$IsLinux`, `$IsWindows`, `$IsMacOS` in a *.ps1* script)
 
 - **Synchronized folders**
 

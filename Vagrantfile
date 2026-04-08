@@ -40,10 +40,13 @@ end
 # Set options for the network interface configuration. All values are
 # optional, and can include:
 # - ip (default = DHCP)
-# - netmask (default value = 255.255.255.0
+# - netmask (default value = 255.255.255.0)
 # - mac
 # - auto_config (if false, Vagrant will not configure this network interface
 # - intnet (if true, an internal network adapter will be created instead of a
+# - bridged (if true, vagrant will create a bridged-adapter network adapter for the interface 
+#   instead of a host-only adapter). Can be used with optional bridge value.
+# - bridge (adapter that will be chosen for the bridged-adapter network (see bridged).)
 #   host-only adapter)
 def network_options(host)
   options = {}
@@ -58,6 +61,7 @@ def network_options(host)
   options[:mac] = host['mac'].gsub(/[-:]/, '') if host.key?('mac')
   options[:auto_config] = host['auto_config'] if host.key?('auto_config')
   options[:virtualbox__intnet] = true if host.key?('intnet') && host['intnet']
+  options[:bridge] = host['bridge'] if host.key?('bridge')
   options
 end
 
@@ -93,9 +97,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.define host['name'] do |node|
       node.vm.box = host['box'] ||= DEFAULT_BASE_BOX
       node.vm.box_url = host['box_url'] if host.key? 'box_url'
+      node.vm.boot_timeout = 600 #Extends time to boot
 
       node.vm.hostname = host['name']
-      node.vm.network :private_network, **network_options(host)
+      
+      # - bridged (if true, vagrant will create a bridged-adapter network adapter for the interface 
+      #   instead of a host-only adapter)
+      
+      if host.key?('bridged') && host['bridged']
+        node.vm.network :public_network, **network_options(host)
+      else
+        node.vm.network :private_network, **network_options(host)
+      end
+
       custom_synced_folders(node.vm, host)
       forwarded_ports(node.vm, host) 
 
@@ -110,20 +124,39 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         end
       end
 
+      # - group: name_of_group_in_VBox
+      # - name: name of the vm in VBox
+      #
       # Add VM to a VirtualBox group
       node.vm.provider :virtualbox do |vb|
+        vb.name = host['vm_name']
+        vb.gui = host['show_gui'] || false
         vb.memory = host['memory'] if host.key? 'memory'
         vb.cpus = host['cpus'] if host.key? 'cpus'
 
         # WARNING: if the name of the current directory is the same as the
         # host name, this will fail.
-        vb.customize ['modifyvm', :id, '--groups', PROJECT_NAME]
+        #
+        # Moves the VM to a VirtualBox Group
+        group = host['group'] || PROJECT_NAME 
+        group = '/' + group unless group.start_with?('/')
+        vb.customize ['modifyvm', :id, '--groups', group]
       end
             
       # Run provisioning script for the VM, if it exists.
-      provisioning_script = PROVISIONING_SCRIPT_DIR + host['name'] + '.sh'
-      if File.exist?(provisioning_script)
+      #
+      # Both .ps1 scripts or .sh scripts can be used for provisioning.
+      
+      provisioning_script = PROVISIONING_SCRIPT_DIR + host['name'] 
+
+      if File.exist?(provisioning_script + '.sh') 
+        provisioning_script = provisioning_script + '.sh'
         node.vm.provision 'shell', path: provisioning_script
+
+      elsif File.exist?(provisioning_script + '.ps1')
+        provisioning_script = provisioning_script + '.ps1'
+        node.vm.provision 'shell', path: provisioning_script
+        
       else
         node.vm.post_up_message = "WARNING! No provisioning script found for #{host['name']}"
       end
