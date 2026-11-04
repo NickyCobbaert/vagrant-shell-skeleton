@@ -15,10 +15,10 @@
   ip: '192.168.56.9'
   box: 'bento/almalinux-9'
 
-- name: CLIENT-01
+- name: 'client001'
   vm_name: windows-client
   box: gusztavvargadr/windows-11
-  group: SEP_Project_AO2
+  group: windows_clients
   memory: 4096
   cpus: 2
   show_gui: true
