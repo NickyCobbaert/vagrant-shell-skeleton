@@ -38,30 +38,37 @@ def windows_host?
 end
 
 # Set options for the network interface configuration. All values are
-# optional, and can include:
-# - ip (default = DHCP)
-# - netmask (default value = 255.255.255.0)
-# - mac
-# - auto_config (if false, Vagrant will not configure this network interface
-# - intnet (if true, an internal network adapter will be created instead of a
-# - bridged (if true, vagrant will create a bridged-adapter network adapter for the interface 
-#   instead of a host-only adapter). Can be used with optional bridge value.
-# - bridge (adapter that will be chosen for the bridged-adapter network (see bridged).)
-#   host-only adapter)
-def network_options(host)
+# optional, but vm should have a `networks:` key and can include:
+# - networks:
+#   - ip (default = DHCP)
+#   - netmask (default value = 255.255.255.0)
+#   - mac
+#   - auto_config (if false, Vagrant will not configure this network interface
+#   - intnet (if true, an internal network adapter will be created instead of a host-only net)
+#   - bridged (if true, vagrant will create a bridged-adapter network adapter for the interface 
+#     instead of a host-only adapter). Can be used with optional bridge value.
+#   - bridge (adapter that will be chosen for the bridged-adapter network (see bridged).)
+#     host-only adapter)
+def network_options(network)
   options = {}
 
-  if host.key?('ip')
-    options[:ip] = host['ip']
-    options[:netmask] = host['netmask'] ||= '255.255.255.0'
+  if network.key?('ip')
+    options[:ip] = network['ip']
+    options[:netmask] = network['netmask'] ||= '255.255.255.0'
   else
     options[:type] = 'dhcp'
   end
 
-  options[:mac] = host['mac'].gsub(/[-:]/, '') if host.key?('mac')
-  options[:auto_config] = host['auto_config'] if host.key?('auto_config')
-  options[:virtualbox__intnet] = true if host.key?('intnet') && host['intnet']
-  options[:bridge] = host['bridge'] if host.key?('bridge')
+  options[:mac] = network['mac'].gsub(/[-:]/, '') if network.key?('mac')
+  options[:auto_config] = network['auto_config'] if network.key?('auto_config')
+  
+  
+  if network.key?('intnet') && network['intnet']
+    options[:virtualbox__intnet] =
+      network['intnet'].is_a?(String) ? network['intnet'] : true
+  end
+
+  options[:bridge] = network['bridge'] if network.key?('bridge')
   options
 end
 
@@ -101,17 +108,24 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       node.vm.hostname = host['name']
       
-      # - bridged (if true, vagrant will create a bridged-adapter network adapter for the interface 
-      #   instead of a host-only adapter)
       
-      if host.key?('bridged') && host['bridged']
-        node.vm.network :public_network, **network_options(host)
-      else
-        node.vm.network :private_network, **network_options(host)
-      end
+      # Configure one or more additional network interfaces.
+      #
+      # Each entry in `networks` becomes one extra network interface.
+      # The first VirtualBox adapter remains the Vagrant NAT interface.
+      if host.key?('networks') && host['networks'].is_a?(Array)
+        host['networks'].each do |network|
 
-      custom_synced_folders(node.vm, host)
-      forwarded_ports(node.vm, host) 
+          # - bridged (if true, vagrant will create a bridged-adapter network adapter for the interface 
+          #   instead of a host-only adapter)
+
+          if network.key?('bridged') && network['bridged']
+            node.vm.network :public_network, **network_options(network)
+          else
+            node.vm.network :private_network, **network_options(network)
+          end
+        end
+      end
 
       # Use custom login name/password if specified
       node.ssh.username = host['ssh_username'] if host.key? 'ssh_username'

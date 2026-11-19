@@ -16,7 +16,8 @@ The short version... After forking and cloning, add VMs in `vagrant-hosts.yml`, 
 # vagrant-hosts.yml
 ---
 - name: srv001
-  ip: 192.168.56.31
+  networks:
+    - ip: 192.168.56.31
 ```
 
 and write a provisioning script with the same name as the VM in the `provisioning/` folder (e.g. `provisioning/srv001.sh`).
@@ -42,12 +43,14 @@ Next, edit `vagrant-hosts.yml` to specify the VMs in your Vagrant environment. e
 
 ```Yaml
 - name: 'srv001'
-  ip: '192.168.56.10'
   box: 'bento/almalinux-9'
+  networks:
+    -  ip: '192.168.56.10'
 
 - name: 'srv002'
-  ip: '192.168.56.11'
   box: 'bento/fedora-latest'
+  networks:
+    -  ip: '192.168.56.11'
 ```
 
 You should at least give each VM a `name:`, other settings (see below) are optional. A host-only adapter is created and the given IP assigned to that interface.
@@ -108,7 +111,8 @@ The table below summarizes all supported settings for specifying VM properties. 
 
     ```yaml
     - name: 'srv001'
-      ip: '192.0.2.10'
+      networks:
+        - ip: '192.0.2.10'
     ```
 
     Example with a static IP address in a class C (/24) internal network. If there is currently no host-ony adapter for the given subnet, Vagrant will create one.
@@ -117,9 +121,10 @@ The table below summarizes all supported settings for specifying VM properties. 
 
     ```yaml
     - name: 'srv001'
-      ip: '192.168.56.10'
       cpus: 4
       memory: 4096
+      networks:
+        - ip: '192.168.56.10'
     ```
 
     This VM will be assigned 4 CPUs and 4GiB of RAM. If you don't specify the memory or number of CPUs, Vagrant will use the values from the base box.
@@ -128,12 +133,14 @@ The table below summarizes all supported settings for specifying VM properties. 
 
     ```yaml
     - name: 'el'
-      ip: '192.168.56.10'
       box: 'bento/almalinux-9'
+      networks:
+        - ip: '192.168.56.10'
 
     - name: 'fedora'
-      ip: '192.168.56.11'
       box: 'bento/fedora-latest'
+      networks:
+        - ip: '192.168.56.11'
     ```
 
     Two VMs, each based on a different base box, viz. AlmaLinux 9 and the latest Fedora, respectively.
@@ -143,10 +150,11 @@ The table below summarizes all supported settings for specifying VM properties. 
 
     ```yaml
     - name: 'srv001'
-      ip: '172.19.0.10'
-      netmask: '255.255.0.0'
-      mac: '00:11:22:33:44:55'
-      intnet: true
+      networks:
+        - ip: '172.19.0.10'
+          netmask: '255.255.0.0'
+          mac: '00:11:22:33:44:55'
+          intnet: true
     ```
 
     Example with most of the available networking options. The VM will be assigned a static IP address within a class B (/16) internal network. The VM will be attached to an *internal* network interface instead of the default host-only. The MAC address is also specified.
@@ -186,8 +194,9 @@ The table below summarizes all supported settings for specifying VM properties. 
     group: SEP_Project_AO2
     memory: 8192
     cpus: 4
-    bridged: true
-    bridge: "enp0s8"
+    networks:
+      - bridged: true
+        bridge: "enp0s8"
     show_gui: true
   ```
 
@@ -200,7 +209,8 @@ The table below summarizes all supported settings for specifying VM properties. 
 
     ```yaml
     - name: 'srv001'
-      ip: '192.168.56.33'
+      networks:
+        - ip: '192.168.56.33'
       synced_folders:
         - src: 'test'
           dest: '/tmp/test'
